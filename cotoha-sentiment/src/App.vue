@@ -1,18 +1,13 @@
 <template>
   <div id="app">
-    <c-button
-      @click="postSentiment"
-      :disabled="loading"
-    >
+    <c-button @click="executeAnalysis" :disabled="loading">
       分析
     </c-button>
 
-    <div
-      class="chart"
-    >
+    <div class="chart">
       <line-chart
         :dataCollection="dataCollection"
-        v-if="analysisLoading"
+        v-if="doesFinishAnalysis"
       ></line-chart>
     </div>
     {{ result }}
@@ -21,10 +16,10 @@
 
 <script>
 import axios from "axios";
-import sentenceData from "./assets/sentence.json"
+import sentenceData from "./assets/sentence.json";
 
-import CButton from "@/components/CButton.vue"
-import LineChart from "@/components/LineChart.vue"
+import CButton from "@/components/CButton.vue";
+import LineChart from "@/components/LineChart.vue";
 
 export default {
   name: "App",
@@ -34,19 +29,22 @@ export default {
   },
   data() {
     return {
+      // コーパス
       sentenceData: null,
+      // コーパスのkey配列
+      keys: [],
       result: {},
       loading: false,
-      analysisLoading: false,
+      doesFinishAnalysis: false,
       dataCollection: {
         labels: [],
         datasets: [
           {
-            label: 'data one',
-            borderColor: '#f87979',
+            label: "data one",
+            borderColor: "#f87979",
             data: [1, 2],
             fill: false
-          },
+          }
         ]
       }
     };
@@ -92,36 +90,45 @@ export default {
       return request;
     },
     async postSentiment() {
-      this.analysisLoading = true;
-
       // cotohaのトークンを取得
       const token = await this.auth(
         process.env.VUE_APP_CLIENT_ID,
         process.env.VUE_APP_CLIENT_SECRET
       );
-      // 感情分析を実行
-      const keys = Object.keys(this.sentenceData)
-      // データセットにラベルを追加
-      keys.forEach(key => {
-        this.dataCollection.labels.push(key)
-      })
       // 分析を実行
-      keys.forEach(async key => {
-        const result = await this.sentenceData[key].reduce(async (pacc, sentence) => {
-          let acc = await pacc
-          const result = await this.sentiment(sentence, token)
-          acc.push(result.data)
-          return acc
-        }, [])
-        this.$set(this.result, key, result)
-      })
-      this.analysisLoading = true;
+      return await Promise.all(
+        this.keys.map(async key => {
+          const result = await this.sentenceData[key].reduce(
+            async (pacc, sentence) => {
+              let acc = await pacc;
+              const result = await this.sentiment(sentence, token);
+              acc.push(result.data.result);
+              return acc;
+            },
+            []
+          );
+          return result;
+        })
+      );
+    },
+    async executeAnalysis() {
+      const result = await this.postSentiment();
+      console.log(result);
+      this.doesFinishAnalysis = true;
     }
   },
   created() {
     this.loading = true;
-    this.sentenceData = sentenceData
-    this.loading = false
+
+    // 分析データを準備
+    this.sentenceData = sentenceData;
+    this.keys = Object.keys(this.sentenceData);
+    // データセットにラベルを追加
+    this.keys.forEach(key => {
+      this.dataCollection.labels.push(key);
+    });
+
+    this.loading = false;
   }
 };
 </script>
