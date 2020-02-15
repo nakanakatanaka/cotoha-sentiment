@@ -1,16 +1,18 @@
 <template>
   <div id="app">
-    <c-button @click="executeAnalysis" :disabled="loading">
+    <c-button @click="executeAnalysis" :disabled="loading" v-if="!doesFinishAnalysis">
       分析
     </c-button>
 
+    <c-spinner
+      v-if="loading"
+    />
     <div class="chart">
       <line-chart
         :dataCollection="dataCollection"
         v-if="doesFinishAnalysis"
       ></line-chart>
     </div>
-    {{ result }}
   </div>
 </template>
 
@@ -19,12 +21,14 @@ import axios from "axios";
 import sentenceData from "./assets/sentence.json";
 
 import CButton from "@/components/CButton.vue";
+import CSpinner from "@/components/CSpinner.vue";
 import LineChart from "@/components/LineChart.vue";
 
 export default {
   name: "App",
   components: {
     CButton,
+    CSpinner,
     LineChart
   },
   data() {
@@ -33,14 +37,13 @@ export default {
       sentenceData: null,
       // コーパスのkey配列
       keys: [],
-      result: {},
       loading: false,
       doesFinishAnalysis: false,
       dataCollection: {
         labels: [],
         datasets: [
           {
-            label: "data one",
+            label: "まい",
             borderColor: "#f87979",
             data: [1, 2],
             fill: false
@@ -112,14 +115,17 @@ export default {
       );
     },
     async executeAnalysis() {
+      this.loading = true;
+      // 分析実行
       const result = await this.postSentiment();
       console.log(result);
+
+      // 終了時の表示変更
       this.doesFinishAnalysis = true;
+      this.loading = false;
     }
   },
   created() {
-    this.loading = true;
-
     // 分析データを準備
     this.sentenceData = sentenceData;
     this.keys = Object.keys(this.sentenceData);
@@ -127,8 +133,6 @@ export default {
     this.keys.forEach(key => {
       this.dataCollection.labels.push(key);
     });
-
-    this.loading = false;
   }
 };
 </script>
@@ -141,5 +145,8 @@ export default {
   text-align: center;
   color: #2c3e50;
   margin-top: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
