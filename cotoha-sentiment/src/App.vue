@@ -45,7 +45,7 @@ export default {
           {
             label: "まい",
             borderColor: "#f87979",
-            data: [1, 2],
+            data: [1, 2, 6, 1],
             fill: false
           }
         ]
@@ -117,9 +117,16 @@ export default {
     async executeAnalysis() {
       this.loading = true;
       // 分析実行
-      const result = await this.postSentiment();
-      console.log(result);
-
+      try {
+        const result = await this.postSentiment();
+        console.log(result);
+        result.forEach(r => {
+          this.dataCollection.datasets[0].data.push(r[0].score)
+        })
+        console.log(this.dataCollection.datasets[0].data)
+      } catch(error) {
+        console.log(error)
+      }
       // 終了時の表示変更
       this.doesFinishAnalysis = true;
       this.loading = false;
