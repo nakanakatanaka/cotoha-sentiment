@@ -1,20 +1,31 @@
 <template>
   <div id="app">
-    <input type="text" v-model="sentence" />
-    <button @click="postSentiment">分析</button>
+    <c-button
+      @click="postSentiment"
+      :disabled="loading"
+    >
+      分析
+    </c-button>
     {{ result }}
   </div>
 </template>
 
 <script>
 import axios from "axios";
+import sentenceData from "./assets/sentence.json"
+
+import CButton from "@/components/CButton.vue"
 
 export default {
   name: "App",
+  components: {
+    CButton
+  },
   data() {
     return {
-      sentence: "",
-      result: {}
+      sentenceData: null,
+      result: {},
+      loading: false
     };
   },
   methods: {
@@ -58,12 +69,27 @@ export default {
       return request;
     },
     async postSentiment() {
+      // cotohaのトークンを取得
       const token = await this.auth(
         process.env.VUE_APP_CLIENT_ID,
         process.env.VUE_APP_CLIENT_SECRET
       );
-      this.result = await this.sentiment(this.sentence, token);
+      // 感情分析を実行
+      Object.keys(this.sentenceData).forEach(async key => {
+        const result = await this.sentenceData[key].reduce(async (pacc, sentence) => {
+          let acc = await pacc
+          const result = await this.sentiment(sentence, token)
+          acc.push(result)
+          return acc
+        }, [])
+        this.$set(this.result, key, result)
+      })
     }
+  },
+  created() {
+    this.loading = true;
+    this.sentenceData = sentenceData
+    this.loading = false
   }
 };
 </script>
