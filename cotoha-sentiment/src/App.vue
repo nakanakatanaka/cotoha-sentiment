@@ -6,6 +6,15 @@
     >
       分析
     </c-button>
+
+    <div
+      class="chart"
+    >
+      <line-chart
+        :dataCollection="dataCollection"
+        v-if="analysisLoading"
+      ></line-chart>
+    </div>
     {{ result }}
   </div>
 </template>
@@ -15,17 +24,31 @@ import axios from "axios";
 import sentenceData from "./assets/sentence.json"
 
 import CButton from "@/components/CButton.vue"
+import LineChart from "@/components/LineChart.vue"
 
 export default {
   name: "App",
   components: {
-    CButton
+    CButton,
+    LineChart
   },
   data() {
     return {
       sentenceData: null,
       result: {},
-      loading: false
+      loading: false,
+      analysisLoading: false,
+      dataCollection: {
+        labels: [],
+        datasets: [
+          {
+            label: 'data one',
+            borderColor: '#f87979',
+            data: [1, 2],
+            fill: false
+          },
+        ]
+      }
     };
   },
   methods: {
@@ -69,21 +92,30 @@ export default {
       return request;
     },
     async postSentiment() {
+      this.analysisLoading = true;
+
       // cotohaのトークンを取得
       const token = await this.auth(
         process.env.VUE_APP_CLIENT_ID,
         process.env.VUE_APP_CLIENT_SECRET
       );
       // 感情分析を実行
-      Object.keys(this.sentenceData).forEach(async key => {
+      const keys = Object.keys(this.sentenceData)
+      // データセットにラベルを追加
+      keys.forEach(key => {
+        this.dataCollection.labels.push(key)
+      })
+      // 分析を実行
+      keys.forEach(async key => {
         const result = await this.sentenceData[key].reduce(async (pacc, sentence) => {
           let acc = await pacc
           const result = await this.sentiment(sentence, token)
-          acc.push(result)
+          acc.push(result.data)
           return acc
         }, [])
         this.$set(this.result, key, result)
       })
+      this.analysisLoading = true;
     }
   },
   created() {
