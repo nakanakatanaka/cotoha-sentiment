@@ -12,6 +12,8 @@
         :dataCollection="dataCollection"
         v-if="doesFinishAnalysis"
       ></line-chart>
+
+      {{ dataCollection.datasets[0] }}
     </div>
   </div>
 </template>
@@ -45,7 +47,7 @@ export default {
           {
             label: "まい",
             borderColor: "#f87979",
-            data: [1, 2, 6, 1],
+            data: [],
             fill: false
           }
         ]
